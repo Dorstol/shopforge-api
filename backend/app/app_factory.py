@@ -5,13 +5,25 @@ from fastapi.responses import ORJSONResponse
 from apps.info.router import router as info_router
 from apps.auth.router import router as auth_router
 from apps.users.router import router as users_router
-
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from apps.services.redis_service import redis_service
 from settings import settings
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
 
 sentry_sdk.init(
     dsn=settings.SENTRY_DSN,
     send_default_pii=True,
 )
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    redis = redis_service.redis
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    yield
+    await redis.close()
+    await redis.connection_pool.disconnect()
 
 
 def get_application() -> FastAPI:
@@ -20,6 +32,7 @@ def get_application() -> FastAPI:
         debug=settings.DEBUG,
         root_path="/api",
         default_response_class=ORJSONResponse,
+        lifespan=lifespan,
     )
 
     app.include_router(auth_router)

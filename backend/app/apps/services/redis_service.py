@@ -11,7 +11,7 @@ class RedisService:
             username=settings.REDIS_USER,
             password=settings.REDIS_PASSWORD,
             db=settings.REDIS_DATABASE,
-            decode_responses=True,
+            decode_responses=False,
         )
     
     @asynccontextmanager
@@ -19,7 +19,7 @@ class RedisService:
         try:
             yield self.redis
         finally:
-            await self.redis.close()
+            pass
 
     async def set_cache(self, key: str, value: str | int, ttl: int = 60):
         async with self.get_redis() as _redis:

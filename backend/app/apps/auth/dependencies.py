@@ -1,3 +1,4 @@
+from h11._abnf import status_code
 from apps.core.dependencies import get_async_session
 from apps.users.crud import User, user_manager
 from fastapi import Depends, HTTPException, status
@@ -16,6 +17,13 @@ async def get_current_user(
     session: AsyncSession = Depends(get_async_session),
 ) -> User:
     payload = await auth_handler.decode_token(token)
+
+    if payload.get("key"):
+        raise HTTPException(
+            detail="Refresh token was provided",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
     user: User | None = await user_manager.get(
         session=session,
         field_value=int(payload["sub"]),
