@@ -1,21 +1,24 @@
-import sentry_sdk
-from fastapi import FastAPI, Request
-from scalar_fastapi import get_scalar_api_reference
-from fastapi.responses import ORJSONResponse
-from apps.info.router import router as info_router
-from apps.auth.router import router as auth_router
-from apps.users.router import router as users_router
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+
+import sentry_sdk
+from apps.auth.router import router as auth_router
+from apps.info.router import router as info_router
+from apps.products.router import router as products_router
 from apps.services.redis_service import redis_service
-from settings import settings
+from apps.users.router import router as users_router
+from fastapi import FastAPI, Request
+from fastapi.responses import ORJSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from scalar_fastapi import get_scalar_api_reference
+from settings import settings
 
 sentry_sdk.init(
     dsn=settings.SENTRY_DSN,
     send_default_pii=True,
 )
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -37,6 +40,7 @@ def get_application() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(users_router)
+    app.include_router(products_router)
 
     if settings.DEBUG:
         app.include_router(info_router)
