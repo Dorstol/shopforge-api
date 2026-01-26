@@ -24,12 +24,12 @@ async def create_category(
     new_category: NewCategory,
     session: AsyncSession = Depends(get_async_session),
 ) -> SavedCategorySchema:
-    if_exist = await category_manager.get(
+    category_exists = await category_manager.get(
         session=session,
         field=Category.name,
         field_value=new_category.name,
     )
-    if if_exist:
+    if category_exists:
         raise HTTPException(
             detail=f"Category with name '{new_category.name}' already exists",
             status_code=status.HTTP_409_CONFLICT,
