@@ -1,4 +1,4 @@
-from apps.core.schemas import IdSchema, InstanceVersionSchema
+from apps.core.schemas import IdSchema, InstanceVersionSchema, PaginationResponseSchema
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -9,4 +9,9 @@ class NewCategory(BaseModel):
 
 
 class SavedCategorySchema(NewCategory, IdSchema, InstanceVersionSchema):
-    pass
+    class Config:
+        from_attributes = True
+
+
+class PaginatorSavedCategoryResponseSchema(PaginationResponseSchema):
+    items: list[SavedCategorySchema]
