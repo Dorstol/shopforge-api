@@ -2,6 +2,7 @@ import datetime as dt
 
 from pydantic import BaseModel, Field
 
+
 class LoginResponseShema(BaseModel):
     access_token: str
     refresh_token: str

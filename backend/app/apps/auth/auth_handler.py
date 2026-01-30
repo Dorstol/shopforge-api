@@ -1,17 +1,17 @@
-from apps.services.redis_service import redis_service
 import datetime as dt
-import jwt
-
 from uuid import uuid4
-from apps.auth.schemas import LoginResponseShema
-from apps.auth.password_handler import PasswordHandler
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.security import OAuth2PasswordRequestForm
-from settings import settings
+import jwt
+from apps.auth.password_handler import PasswordHandler
+from apps.auth.schemas import LoginResponseShema
+from apps.services.redis_service import redis_service
 from apps.users.crud import user_manager
 from apps.users.models import User
 from fastapi import HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+from settings import settings
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 class AuthHandler:
     def __init__(self):
@@ -48,10 +48,7 @@ class AuthHandler:
         return tokens_response
 
     async def generate_tokens(self, user: User) -> LoginResponseShema:
-        access_token_payload = {
-            "sub": str(user.id),
-            "email": user.email
-        }
+        access_token_payload = {"sub": str(user.id), "email": user.email}
         access_token = await self.generate_token(
             payload=access_token_payload,
             expire_minutes=self.access_token_lifetime,
@@ -148,5 +145,6 @@ class AuthHandler:
             )
         token_pair = await self.generate_tokens(user)
         return token_pair
+
 
 auth_handler = AuthHandler()

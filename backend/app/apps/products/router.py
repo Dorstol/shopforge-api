@@ -8,6 +8,7 @@ from apps.products.models import Category
 from apps.products.schemas import (
     NewCategory,
     PaginatorSavedCategoryResponseSchema,
+    PatchCategorySchema,
     SavedCategorySchema,
 )
 from apps.users.constants import UserPermissionsEnum
@@ -80,3 +81,40 @@ async def get_categories(
     )
 
     return result
+
+
+@router.patch(
+    "/{id}",
+    dependencies=[
+        Depends(require_permissions([UserPermissionsEnum.CAN_CREATE_CATEGORY])),
+    ],
+)
+async def update_category(
+    patch_data: PatchCategorySchema,
+    category_id: int = Path(..., description="The id of the item ", ge=1, alias="id"),
+    session: AsyncSession = Depends(get_async_session),
+) -> SavedCategorySchema:
+    updated_category = await category_manager.patch(
+        session=session,
+        instance_id=category_id,
+        data_to_patch=patch_data,
+    )
+
+    return updated_category
+
+
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[
+        Depends(require_permissions([UserPermissionsEnum.CAN_CREATE_CATEGORY])),
+    ],
+)
+async def delete_category(
+    category_id: int = Path(..., description="The id of the item ", ge=1, alias="id"),
+    session: AsyncSession = Depends(get_async_session),
+) -> None:
+    await category_manager.delete_item(
+        instance_id=category_id,
+        session=session,
+    )

@@ -6,7 +6,7 @@ from apps.core.base import Base
 from apps.core.schemas import PaginationResponseSchema, SearchParamsSchema, SortEnum
 from fastapi import HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import and_, asc, desc, func, or_, select, update
+from sqlalchemy import and_, asc, delete, desc, exists, func, or_, select, update
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
@@ -74,6 +74,19 @@ class BaseCRUDManager(ABC):
         )
         if not data_for_updating:
             return item
+
+        optimistic_offline_lock_version = getattr(item, "version", None)
+        if optimistic_offline_lock_version is not None:
+            if optimistic_offline_lock_version != getattr(
+                data_to_patch, "version", None
+            ):
+                raise HTTPException(
+                    detail="Optimistic offline lock for instance was enabled, "
+                    "but current version is not provided or outdated",
+                    status_code=status.HTTP_409_CONFLICT,
+                )
+            data_for_updating |= {"version": data_to_patch.version + 1}
+
         query = (
             update(self.model)
             .where(self.model.id == instance_id)
@@ -132,3 +145,33 @@ class BaseCRUDManager(ABC):
             limit=params.limit,
             pages=ceil(total_count / params.limit),
         )
+
+    async def item_exist(
+        self,
+        *,
+        session: AsyncSession,
+        field: InstrumentedAttribute,
+        field_value: Any,
+    ) -> bool:
+        query = select(exists().where(field == field_value))
+        result = await session.execute(query)
+        return result.scalar()
+
+    async def delete_item(
+        self,
+        instance_id: int,
+        session: AsyncSession,
+    ) -> None:
+        is_item_exists = await self.item_exist(
+            session=session,
+            field=self.model.id,
+            field_value=instance_id,
+        )
+        if not is_item_exists:
+            raise HTTPException(
+                detail=f"Category with id '{instance_id}' not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        query = delete(self.model).where(self.model.id == instance_id)
+        await session.execute(query)
+        await session.commit()

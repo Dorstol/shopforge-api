@@ -15,3 +15,7 @@ class SavedCategorySchema(NewCategory, IdSchema, InstanceVersionSchema):
 
 class PaginatorSavedCategoryResponseSchema(PaginationResponseSchema):
     items: list[SavedCategorySchema]
+
+
+class PatchCategorySchema(InstanceVersionSchema, NewCategory):
+    pass

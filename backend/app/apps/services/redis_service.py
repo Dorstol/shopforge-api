@@ -1,7 +1,9 @@
-import redis.asyncio as redis
-from settings import settings
 import datetime as dt
 from contextlib import asynccontextmanager
+
+import redis.asyncio as redis
+from settings import settings
+
 
 class RedisService:
     def __init__(self):
@@ -13,7 +15,7 @@ class RedisService:
             db=settings.REDIS_DATABASE,
             decode_responses=False,
         )
-    
+
     @asynccontextmanager
     async def get_redis(self):
         try:
