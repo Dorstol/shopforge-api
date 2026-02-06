@@ -44,6 +44,15 @@ class RedisSettings(BaseSettings):
     REDIS_DATABASE: int = 0
 
 
+class S3Storage(BaseSettings):
+    S3_ENDPOINT: str
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    S3_PUBLIC_URL: str
+    S3_REGION: str
+    S3_BUCKET: str
+
+
 class Settings(
     CoreSettings,
     PostgreSQLSettings,
@@ -51,6 +60,7 @@ class Settings(
     BetterStackSettings,
     JWTSettings,
     RedisSettings,
+    S3Storage,
 ):
     pass
 

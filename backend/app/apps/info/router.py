@@ -1,8 +1,10 @@
 import socket
 import time
+from uuid import uuid4
 
 from apps.services.betterstack_service import betterstack_logger
-from fastapi import APIRouter
+from apps.services.s3_service import s3_storage
+from fastapi import APIRouter, File, UploadFile
 from fastapi_cache.decorator import cache
 from settings import settings
 
@@ -53,3 +55,15 @@ async def trigger_error():
 async def heavy_endpoint(some_param: str) -> dict:
     time.sleep(5)
     return {"some_param": some_param * 2}
+
+
+@router.post("/test-upload-files")
+async def upload_files(
+    files: list[UploadFile] = File(...),
+) -> dict:
+    uuid_id = uuid4()
+    urls = await s3_storage.upload_files(files, uuid_id)
+
+    return {
+        "urls": urls,
+    }
