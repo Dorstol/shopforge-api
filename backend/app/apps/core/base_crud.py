@@ -1,13 +1,16 @@
-from sqlalchemy.exc import DBAPIError
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from math import ceil
+from typing import Any, Optional
+
+from apps.core.base import Base
+from apps.core.schemas import PaginationResponseSchema, SearchParamsSchema, SortEnum
+from fastapi import HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy import and_, asc, delete, desc, exists, func, or_, select, update
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
-from sqlalchemy import select, update
-from fastapi import HTTPException, status
-from apps.core.base import Base
-from pydantic import BaseModel
-from sqlalchemy.exc import DBAPIError
+
 
 class BaseCRUDManager(ABC):
     model: type[Base] = None
@@ -47,7 +50,11 @@ class BaseCRUDManager(ABC):
         data_to_patch: BaseModel,
         exclude_unset: bool = True,
     ) -> Base:
-        query = select(self.model).filter(self.model.id == instance_id).with_for_update(nowait=True)
+        query = (
+            select(self.model)
+            .filter(self.model.id == instance_id)
+            .with_for_update(nowait=True)
+        )
         try:
             result = await session.execute(query)
             item = result.scalar_one_or_none()
@@ -67,7 +74,104 @@ class BaseCRUDManager(ABC):
         )
         if not data_for_updating:
             return item
-        query = update(self.model).where(self.model.id == instance_id).values(**data_for_updating)
+
+        optimistic_offline_lock_version = getattr(item, "version", None)
+        if optimistic_offline_lock_version is not None:
+            if optimistic_offline_lock_version != getattr(
+                data_to_patch, "version", None
+            ):
+                raise HTTPException(
+                    detail="Optimistic offline lock for instance was enabled, "
+                    "but current version is not provided or outdated",
+                    status_code=status.HTTP_409_CONFLICT,
+                )
+            data_for_updating |= {"version": data_to_patch.version + 1}
+
+        query = (
+            update(self.model)
+            .where(self.model.id == instance_id)
+            .values(**data_for_updating)
+        )
         await session.execute(query)
         await session.commit()
         return item
+
+    async def get_items_paginated(
+        self,
+        *,
+        session: AsyncSession,
+        params: SearchParamsSchema,
+        targeted_schema: type[BaseModel],
+        search_fields: list[InstrumentedAttribute] = None,
+    ) -> PaginationResponseSchema:
+        sort_direction = asc if params.sort_direction == SortEnum.ASC else desc
+        query = select(self.model)
+        count_query = select(func.count()).select_from(self.model)
+
+        if params.q and search_fields:
+            if params.use_sharp_filter:
+                # Точный поиск: хотя бы одно поле должно быть в точности равно params.q (в нижнем регистре)
+                search_field_condition = or_(
+                    func.lower(search_field) == params.q
+                    for search_field in search_fields
+                )
+            else:
+                # Нечеткий поиск: разбиваем запрос на слова длиннее 1 символа
+                words = [word for word in params.q.split() if len(word) > 1]
+                # Условие: Для каждого поля поиска проверяем, содержит ли оно ВСЕ слова запроса.
+                # Затем объединяем поля через OR.
+                # (Field1 содержит Word1 И Word2) ИЛИ (Field2 содержит Word1 И Word2)
+                search_field_condition = or_(
+                    and_(*(search_field.icontains(word) for word in words))
+                    for search_field in search_fields
+                )
+            query = query.filter(search_field_condition)
+            count_query = count_query.filter(search_field_condition)
+
+        sort_field = getattr(self.model, params.sort_by, self.model.id)
+        query = query.order_by(sort_direction(sort_field))
+
+        offset = (params.page - 1) * params.limit
+        query = query.offset(offset).limit(params.limit)
+
+        result = await session.execute(query)
+        result_count = await session.execute(count_query)
+        total_count: int = result_count.scalar()
+
+        return PaginationResponseSchema(
+            items=[targeted_schema.from_orm(item) for item in result.scalars().all()],
+            total=total_count,
+            page=params.page,
+            limit=params.limit,
+            pages=ceil(total_count / params.limit),
+        )
+
+    async def item_exist(
+        self,
+        *,
+        session: AsyncSession,
+        field: InstrumentedAttribute,
+        field_value: Any,
+    ) -> bool:
+        query = select(exists().where(field == field_value))
+        result = await session.execute(query)
+        return result.scalar()
+
+    async def delete_item(
+        self,
+        instance_id: int,
+        session: AsyncSession,
+    ) -> None:
+        is_item_exists = await self.item_exist(
+            session=session,
+            field=self.model.id,
+            field_value=instance_id,
+        )
+        if not is_item_exists:
+            raise HTTPException(
+                detail=f"Category with id '{instance_id}' not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        query = delete(self.model).where(self.model.id == instance_id)
+        await session.execute(query)
+        await session.commit()

@@ -1,11 +1,13 @@
+import logging
+import sys
+
 from logtail import LogtailHandler
-import logging, sys
 from settings import settings
 
 
 def get_betterstack_logger():
     handler = LogtailHandler(
-        source_token=settings.BETTER_STACK_TOKEN, 
+        source_token=settings.BETTER_STACK_TOKEN,
         host=settings.BETTER_STACK_HOST,
     )
     logger = logging.getLogger(__name__)
@@ -21,5 +23,6 @@ def get_betterstack_logger():
     stream_heandler.setFormatter(formatter)
     logger.addHandler(stream_heandler)
     return logger
+
 
 betterstack_logger = get_betterstack_logger()

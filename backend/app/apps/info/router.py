@@ -1,12 +1,14 @@
 import socket
 import time
-
-from fastapi import APIRouter
-from .schemas import BackendInfo, DatabaseInfo
-from settings import settings
-from fastapi_cache.decorator import cache
+from uuid import uuid4
 
 from apps.services.betterstack_service import betterstack_logger
+from apps.services.s3_service import s3_storage
+from fastapi import APIRouter, File, UploadFile
+from fastapi_cache.decorator import cache
+from settings import settings
+
+from .schemas import BackendInfo, DatabaseInfo
 
 router = APIRouter(
     prefix="/info",
@@ -23,7 +25,7 @@ async def get_backend_info() -> BackendInfo:
         extra={
             "user_id": 123,
             "debug_info": {"function": "get_backend_info", "status": "OK"},
-        }
+        },
     )
 
     betterstack_logger.error(
@@ -31,10 +33,9 @@ async def get_backend_info() -> BackendInfo:
         extra={
             "user_id": 321,
             "debug_info": {"function": "get_backend_info", "status": "ERROR"},
-        }
+        },
     )
 
-    
     return {"backend": socket.gethostname()}
 
 
@@ -54,3 +55,15 @@ async def trigger_error():
 async def heavy_endpoint(some_param: str) -> dict:
     time.sleep(5)
     return {"some_param": some_param * 2}
+
+
+@router.post("/test-upload-files")
+async def upload_files(
+    files: list[UploadFile] = File(...),
+) -> dict:
+    uuid_id = uuid4()
+    urls = await s3_storage.upload_files(files, uuid_id)
+
+    return {
+        "urls": urls,
+    }

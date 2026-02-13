@@ -1,16 +1,15 @@
+import uuid
 from datetime import datetime
 
+from settings import settings
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
-    create_async_engine,
-    async_sessionmaker,
     AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, declared_attr
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from sqlalchemy.sql import func
-
-from settings import settings
 
 engine = create_async_engine(
     settings.database_async_url,
@@ -41,3 +40,16 @@ class Base(AsyncAttrs, DeclarativeBase):
     @declared_attr.directive
     def __tablename__(cls) -> str:
         return cls.__name__.lower() + "s"
+
+
+class UpdatedAtMixin:
+    updated_at: Mapped[datetime] = mapped_column(
+        default=func.now(),
+        onupdate=func.now(),
+    )
+
+
+class UUIDMixin:
+    uuid_data: Mapped[uuid.UUID] = mapped_column(
+        default=uuid.uuid4,
+    )

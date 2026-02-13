@@ -23,6 +23,7 @@ dependencies = [
     "logtail-python (>=0.3.4,<0.4.0)",
     "pyjwt (>=2.10.1,<3.0.0)",
     "fastapi-cache2[redis] (>=0.2.2,<0.3.0)",
+    "aioboto3 (>=15.5.0,<16.0.0)",
 ]
 
 

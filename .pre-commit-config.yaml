@@ -3,10 +3,10 @@ repos:
     rev: v0.12.11
     hooks:
       - id: ruff-check
-        args: [--fix]
-        exclude: ^migrations/
+        args: [--fix, --exit-non-zero-on-fix ]
+        exclude: ^.*migrations/
       - id: ruff-format
-        exclude: ^migrations/
+        exclude: ^.*migrations/
 
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
@@ -14,4 +14,4 @@ repos:
       - id: isort
         args: ["--profile", "black"]
         types: [python]
-        exclude: ^migrations/
+        exclude: ^.*migrations/

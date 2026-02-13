@@ -1,7 +1,6 @@
 from typing import NoReturn
 
 from fastapi import HTTPException, status
-
 from sentry_sdk import capture_message
 
 

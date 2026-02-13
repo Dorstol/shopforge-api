@@ -1,16 +1,18 @@
-from h11._abnf import status_code
+from enum import StrEnum
+from typing import Callable
+
 from apps.core.dependencies import get_async_session
 from apps.users.crud import User, user_manager
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from enum import StrEnum
-from typing import Callable
 
 from .auth_handler import auth_handler
 
+
 class SecurityHandler:
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
 
 async def get_current_user(
     token: str = Depends(SecurityHandler.oauth2_scheme),
@@ -34,7 +36,7 @@ async def get_current_user(
             detail="User not found",
             status_code=status.HTTP_404_NOT_FOUND,
         )
-    
+
     if user.use_token_since and user.use_token_since > payload["iat"]:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User forced logout"
@@ -48,8 +50,7 @@ async def get_admin_user(
 ) -> User:
     if not user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin user is required."
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin user is required."
         )
 
 
@@ -64,9 +65,10 @@ def require_permissions(required_permissions: list[StrEnum]) -> Callable:
 
         if required_permissions_set.issubset(user_permissions):
             return user
-        
+
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Permissions {', '.join(required_permissions_set)} required",
         )
+
     return dependency

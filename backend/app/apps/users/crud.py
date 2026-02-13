@@ -1,9 +1,10 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from apps.auth.password_handler import PasswordHandler
 from apps.core.base_crud import BaseCRUDManager
 from fastapi import HTTPException, status
-from .schemas import UserCreate
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from .models import User
-from apps.auth.password_handler import PasswordHandler
+from .schemas import UserCreate
 
 
 class UserCRUDManager(BaseCRUDManager):
