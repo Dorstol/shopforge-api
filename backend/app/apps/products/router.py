@@ -1,27 +1,36 @@
+import uuid
 from typing import Annotated
 
 from apps.auth.dependencies import require_permissions
 from apps.core.dependencies import get_async_session
 from apps.core.schemas import SearchParamsSchema
-from apps.products.crud import category_manager
-from apps.products.models import Category
+from apps.products.crud import category_manager, product_manager
+from apps.products.dependencies import validate_image, validate_images
+from apps.products.models import Category, Product
 from apps.products.schemas import (
     NewCategory,
     PaginatorSavedCategoryResponseSchema,
     PatchCategorySchema,
     SavedCategorySchema,
+    SavedProductSchema,
 )
+from apps.services.s3_service import s3_storage
 from apps.users.constants import UserPermissionsEnum
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Path, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(
+category_router = APIRouter(
     prefix="/categories",
-    tags=["Products & Categories"],
+    tags=["Categories"],
+)
+
+product_router = APIRouter(
+    prefix="/products",
+    tags=["Products"],
 )
 
 
-@router.post(
+@category_router.post(
     "/create",
     status_code=status.HTTP_201_CREATED,
     dependencies=[
@@ -50,7 +59,7 @@ async def create_category(
     return saved_category
 
 
-@router.get("/{id}")
+@category_router.get("/{id}")
 async def get_category_by_id(
     category_id: int = Path(..., description="The id of the item ", ge=1, alias="id"),
     session: AsyncSession = Depends(get_async_session),
@@ -68,7 +77,7 @@ async def get_category_by_id(
     return saved_category
 
 
-@router.get("/")
+@category_router.get("/")
 async def get_categories(
     params: Annotated[SearchParamsSchema, Depends()],
     session: AsyncSession = Depends(get_async_session),
@@ -83,7 +92,7 @@ async def get_categories(
     return result
 
 
-@router.patch(
+@category_router.patch(
     "/{id}",
     dependencies=[
         Depends(require_permissions([UserPermissionsEnum.CAN_CREATE_CATEGORY])),
@@ -103,7 +112,7 @@ async def update_category(
     return updated_category
 
 
-@router.delete(
+@category_router.delete(
     "/{id}",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[
@@ -118,3 +127,69 @@ async def delete_category(
         instance_id=category_id,
         session=session,
     )
+
+
+@product_router.post(
+    "/create",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[
+        Depends(require_permissions([UserPermissionsEnum.CAN_CREATE_PRODUCT]))
+    ],
+)
+async def create_product(
+    title: str = Form(mix_lenght=3, max_length=200),
+    description: str = Form(mix_lenght=3, max_length=2048),
+    price: float = Form(ge=0.01),
+    categoryId: int = Form(gt=0),
+    main_image: UploadFile = Depends(validate_image),
+    images: list[UploadFile] = Depends(validate_images),
+    session: AsyncSession = Depends(get_async_session),
+):
+    is_category_exists = await category_manager.item_exist(
+        field=Category.id,
+        value=categoryId,
+        session=session,
+    )
+
+    if not is_category_exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Category with id {categoryId} not found!",
+        )
+
+    is_product_exist = await product_manager.item_exist(
+        field=Product.title,
+        value=title,
+        session=session,
+    )
+
+    if is_product_exist:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Product with title {title} already exist!",
+        )
+
+    product_uuid = uuid.uuid4()
+
+    try:
+        main_image_url, *images_urls = await s3_storage.upload_files(
+            files=[main_image, *images],
+            uuid_obj=product_uuid,
+        )
+    except Exception:
+        # todo: log error here
+        raise HTTPException(
+            detail="Failed to save files. Call support!",
+            status_code=status.HTTP_507_INSUFFICIENT_STORAGE,
+        )
+    created_product = await product_manager.create(
+        title=title.strip(),
+        description=description.strip(),
+        price=price,
+        category_id=categoryId,
+        main_image=main_image_url,
+        images=images_urls,
+        session=session,
+    )
+
+    return SavedProductSchema.from_orm(created_product)

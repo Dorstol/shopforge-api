@@ -1,5 +1,10 @@
 from apps.core.base_crud import BaseCRUDManager
-from apps.products.models import Category
+from apps.products.models import Category, Product
+
+
+class ProductCRUDManager(BaseCRUDManager):
+    def __init__(self):
+        self.model = Product
 
 
 class CategoryCRUDManager(BaseCRUDManager):
@@ -7,4 +12,5 @@ class CategoryCRUDManager(BaseCRUDManager):
         self.model = Category
 
 
+product_manager = ProductCRUDManager()
 category_manager = CategoryCRUDManager()

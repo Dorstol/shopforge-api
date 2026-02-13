@@ -12,13 +12,13 @@ class Category(UpdatedAtMixin, Base):
         unique=True,
         nullable=False,
     )
-    version: Mapped[str] = mapped_column(
+    version: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=1,
     )
 
-    product = relationship(
+    products = relationship(
         "Product",
         back_populates="category",
     )

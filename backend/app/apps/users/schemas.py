@@ -1,7 +1,8 @@
 from typing import Annotated
-from pydantic import BaseModel, EmailStr, Field, field_validator, StringConstraints
-from password_strength import PasswordPolicy
+
 from apps.core.schemas import IdSchema
+from password_strength import PasswordPolicy
+from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
 
 
 class UserPassword(BaseModel):

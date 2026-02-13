@@ -19,3 +19,15 @@ class PaginatorSavedCategoryResponseSchema(PaginationResponseSchema):
 
 class PatchCategorySchema(InstanceVersionSchema, NewCategory):
     pass
+
+
+class SavedProductSchema(IdSchema):
+    title: str
+    description: str
+    price: float
+    category_id: int
+    images: list[str]
+    main_image: str
+
+    class Config:
+        from_attributes = True

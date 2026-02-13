@@ -3,7 +3,7 @@ repos:
     rev: v0.12.11
     hooks:
       - id: ruff-check
-        args: [--fix]
+        args: [--fix, --exit-non-zero-on-fix ]
         exclude: ^.*migrations/
       - id: ruff-format
         exclude: ^.*migrations/
