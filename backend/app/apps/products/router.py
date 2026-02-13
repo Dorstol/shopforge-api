@@ -147,7 +147,7 @@ async def create_product(
 ):
     is_category_exists = await category_manager.item_exist(
         field=Category.id,
-        value=categoryId,
+        field_value=categoryId,
         session=session,
     )
 
@@ -159,7 +159,7 @@ async def create_product(
 
     is_product_exist = await product_manager.item_exist(
         field=Product.title,
-        value=title,
+        field_value=title,
         session=session,
     )
 
