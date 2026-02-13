@@ -31,3 +31,7 @@ class SavedProductSchema(IdSchema):
 
     class Config:
         from_attributes = True
+
+
+class PaginatorSavedProductResponseSchema(PaginationResponseSchema):
+    items: list[SavedProductSchema]
