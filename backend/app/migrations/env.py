@@ -3,7 +3,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from apps.core.base import Base
-from apps.products.models import Category, Product  # noqa
+from apps.products.models import Category, Product, OrderProducts, Order # noqa
 from apps.users.models import User  # noqa
 from settings import settings
 from sqlalchemy import pool

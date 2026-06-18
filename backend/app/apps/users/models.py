@@ -3,7 +3,7 @@ import datetime as dt
 from apps.core.base import Base
 from sqlalchemy import String, text
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .constants import UserPermissionsEnum
 
@@ -27,3 +27,5 @@ class User(Base):
     use_token_since: Mapped[dt.datetime] = mapped_column(
         nullable=True,
     )
+
+    orders = relationship("Order", back_populates="user")
