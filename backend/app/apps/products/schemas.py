@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 
 from apps.core.schemas import IdSchema, InstanceVersionSchema, PaginationResponseSchema
 from pydantic import BaseModel, ConfigDict, Field
@@ -45,8 +46,7 @@ class OrderProductsSchema(BaseModel):
     total: float
     product: SavedProductSchema
 
-    class ConfigDict:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderSchema(BaseModel):
@@ -54,7 +54,13 @@ class OrderSchema(BaseModel):
     is_closed: bool
     user_id: int
     cost: float
-    products: list[SavedProductSchema]
+    products: list[OrderProductsSchema]
 
     class Config:
         from_attributes = True
+
+
+class ModeChangeOrderProductQuantityEnum(StrEnum):
+    INCREASE = "increase"
+    DECREASE = "decrease"
+    SET = "set"

@@ -55,6 +55,9 @@ class Product(UUIDMixin, UpdatedAtMixin, Base):
         "Category",
         back_populates="products",
     )
+    order_products = relationship(
+        "OrderProduct", back_populates="product", lazy="selectin"
+    )
 
     def __str__(self):
         return f"<Product {self.title} -#{self.id}, current price: {self.price}>"
@@ -65,20 +68,21 @@ class Order(UpdatedAtMixin, UUIDMixin, Base):
     is_closed: Mapped[bool] = mapped_column(default=False)
 
     user = relationship("User", back_populates="orders")
-    products = relationship("OrderProducts", back_populates="order", lazy="selectin")
+    products = relationship("OrderProduct", back_populates="order", lazy="selectin")
 
     @property
     def cost(self):
         return sum([product.total for product in self.products])
 
 
-class OrderProducts(UpdatedAtMixin, Base):
+class OrderProduct(UpdatedAtMixin, Base):
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
     price: Mapped[int] = mapped_column(default=0.0)
     quantity: Mapped[int] = mapped_column(default=0)
 
     order = relationship("Order", back_populates="products", lazy="selectin")
+    product = relationship("Product", back_populates="order_products", lazy="selectin")
 
     __table_args__ = (
         UniqueConstraint("order_id", "product_id", name="uq_order_product"),
@@ -86,4 +90,4 @@ class OrderProducts(UpdatedAtMixin, Base):
 
     @property
     def total(self):
-        return self.price + self.quantity
+        return self.price * self.quantity

@@ -1,13 +1,25 @@
 import uuid
 from typing import Annotated
 
-from apps.auth.dependencies import User, get_current_user, require_permissions
+from apps.auth.dependencies import require_permissions
 from apps.core.dependencies import get_async_session
 from apps.core.schemas import SearchParamsSchema
-from apps.products.crud import category_manager, order_manager, product_manager
-from apps.products.dependencies import validate_image, validate_images
+from apps.products.crud import (
+    Order,
+    category_manager,
+    order_manager,
+    order_product_manager,
+    product_manager,
+)
+from apps.products.dependencies import (
+    get_order,
+    get_product,
+    validate_image,
+    validate_images,
+)
 from apps.products.models import Category, Product
 from apps.products.schemas import (
+    ModeChangeOrderProductQuantityEnum,
     NewCategory,
     OrderSchema,
     PaginatorSavedCategoryResponseSchema,
@@ -18,7 +30,16 @@ from apps.products.schemas import (
 )
 from apps.services.s3_service import s3_storage
 from apps.users.constants import UserPermissionsEnum
-from fastapi import APIRouter, Depends, Form, HTTPException, Path, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    Form,
+    HTTPException,
+    Path,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 category_router = APIRouter(
@@ -238,14 +259,41 @@ async def get_products(
 
 @order_router.get("/")
 async def get_current_order(
-    user: User = Depends(get_current_user),
+    order: Order = Depends(get_order),
     session: AsyncSession = Depends(get_async_session),
 ) -> OrderSchema:
-    order = await order_manager.get_or_create(
+    order_with_products = await order_manager.get_order_with_products(
+        order_id=order.id, session=session
+    )
+    return OrderSchema.from_orm(order_with_products)
+
+
+@order_router.post("/change-order-product-quantity")
+async def change_order_product_quantity(
+    order: Order = Depends(get_order),
+    quantity: int = Body(ge=0, default=1),
+    mode: ModeChangeOrderProductQuantityEnum = Body(
+        default=ModeChangeOrderProductQuantityEnum.INCREASE
+    ),
+    product: Product = Depends(get_product),
+    session: AsyncSession = Depends(get_async_session),
+) -> OrderSchema:
+    if (
+        mode == ModeChangeOrderProductQuantityEnum.DECREASE
+        and mode != ModeChangeOrderProductQuantityEnum.SET
+    ):
+        quantity = -quantity
+
+    is_set_quantity_mode = mode == ModeChangeOrderProductQuantityEnum.SET
+    await order_product_manager.change_quantity_and_set_current_price(
+        product=product,
+        order=order,
+        quantity=quantity,
+        is_set_quantity_mode=is_set_quantity_mode,
         session=session,
-        user_id=user.id,
-        is_closed=False,
     )
 
-    response = OrderSchema.from_orm(order)
-    return response
+    updated_order = await order_manager.get_order_with_products(
+        order_id=order.id, session=session
+    )
+    return updated_order
