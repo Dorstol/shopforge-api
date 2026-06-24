@@ -78,7 +78,7 @@ class Order(UpdatedAtMixin, UUIDMixin, Base):
 class OrderProduct(UpdatedAtMixin, Base):
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
-    price: Mapped[int] = mapped_column(default=0.0)
+    price: Mapped[float] = mapped_column(default=0.0)
     quantity: Mapped[int] = mapped_column(default=0)
 
     order = relationship("Order", back_populates="products", lazy="selectin")

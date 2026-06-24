@@ -20,8 +20,9 @@ class OrderCRUDManager(BaseCRUDManager):
         self.model = Order
 
     async def get_order_with_products(
-        self, order_id: int, session: AsyncSession
-    ) -> Order:
+        self, order: int | Order, session: AsyncSession
+    ) -> Order | None:
+        order_id = order.id if isinstance(order, Order) else order
         result = await session.execute(
             select(self.model)
             .options(
@@ -30,6 +31,9 @@ class OrderCRUDManager(BaseCRUDManager):
                 ).selectinload(OrderProduct.product)
             )
             .filter(self.model.id == order_id)
+            # Force the filtered loader to overwrite a `products` collection that
+            # `get_order` may have already populated unfiltered in this session.
+            .execution_options(populate_existing=True)
         )
         return result.scalars().first()
 

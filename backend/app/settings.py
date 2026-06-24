@@ -53,6 +53,10 @@ class S3Storage(BaseSettings):
     S3_BUCKET: str
 
 
+class PaymentSettings(BaseSettings):
+    STRIPE_SECRET_KEY: str
+
+
 class Settings(
     CoreSettings,
     PostgreSQLSettings,
@@ -61,6 +65,7 @@ class Settings(
     JWTSettings,
     RedisSettings,
     S3Storage,
+    PaymentSettings,
 ):
     pass
 

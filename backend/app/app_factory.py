@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from apps.auth.router import router as auth_router
 from apps.info.router import router as info_router
+from apps.payments.router import payment_router
 from apps.products.router import category_router, order_router, product_router
 from apps.services.redis_service import redis_service
 from apps.users.router import router as users_router
@@ -43,6 +44,7 @@ def get_application() -> FastAPI:
     app.include_router(category_router)
     app.include_router(product_router)
     app.include_router(order_router)
+    app.include_router(payment_router)
 
     if settings.DEBUG:
         app.include_router(info_router)

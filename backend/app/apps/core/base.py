@@ -17,6 +17,10 @@ engine = create_async_engine(
     max_overflow=10,
     pool_pre_ping=True,
     pool_recycle=1800,
+    # Neon's pooled endpoint (PgBouncer) keeps server connections across clients,
+    # so asyncpg's named prepared-statement cache holds plans that go stale after a
+    # schema change (InvalidCachedStatementError). Disabling the cache avoids it.
+    connect_args={"statement_cache_size": 0},
 )
 async_session_maker = async_sessionmaker(
     engine,
