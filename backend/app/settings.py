@@ -20,7 +20,7 @@ class SentrySettings(BaseSettings):
 
 
 class CoreSettings(BaseSettings):
-    APP_NAME: str = "Title"
+    APP_NAME: str = "ShopForge-API"
     DEBUG: bool = False
 
 

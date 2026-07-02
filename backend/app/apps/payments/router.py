@@ -59,7 +59,7 @@ async def get_payments(
     return PaymentUrlSchema(url=session_stripe["url"])
 
 
-@payment_router.post("/webhook")
+@payment_router.post("/webhook", include_in_schema=settings.DEBUG)
 async def process_payment_stripe(
     stripe_data: dict,
     session: AsyncSession = Depends(get_async_session),
