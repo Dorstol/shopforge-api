@@ -38,5 +38,5 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/shop-api:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/shop-api:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/shopforge-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/shopforge-api:${{ github.sha }}
