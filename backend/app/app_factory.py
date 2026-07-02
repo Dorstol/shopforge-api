@@ -9,6 +9,7 @@ from apps.products.router import category_router, order_router, product_router
 from apps.services.redis_service import redis_service
 from apps.users.router import router as users_router
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
@@ -37,6 +38,14 @@ def get_application() -> FastAPI:
         root_path="/api",
         default_response_class=ORJSONResponse,
         lifespan=lifespan,
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     app.include_router(auth_router)
