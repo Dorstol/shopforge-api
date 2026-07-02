@@ -1,7 +1,7 @@
 [project]
-name = "backend"
+name = "shopforge-api-backend"
 version = "0.1.0"
-description = ""
+description = "ShopForge API — FastAPI backend for an online store (auth, catalog, cart, Stripe payments)"
 authors = [
     {name = "Dorstol",email = "olehsofronov@gmail.com"}
 ]
